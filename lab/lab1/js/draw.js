@@ -89,7 +89,7 @@ Moving your mouse outside of the circle should remove the highlighting.
 ===================== */
 
 // Global Variables
-var myRectangle;
+var myRectangles = [];
 
 // Initialize Leaflet Draw
 var drawControl = new L.Control.Draw({
@@ -110,4 +110,28 @@ map.on('draw:created', function (e) {
     var type = e.layerType; // The type of shape
     var layer = e.layer; // The Leaflet layer for the shape
     var id = L.stamp(layer); // The unique Leaflet ID for the layer
+    layer.on("click", function(e) {console.log(e.target._leaflet_id); });
+    /*
+    if (myRectangle != undefined) {
+        map.removeLayer(myRectangle);
+    }
+    myRectangle = layer;
+    map.addLayer(myRectangle);
+    $("#shapes").empty();
+    */
+    myRectangles.push({'type': type,'layer': layer, 'id': id});
+    $("#shapes").empty();
+    _.each(myRectangles, function (layer) {
+      map.addLayer(layer['layer']);
+      var jhtml = $.parseHTML(`<div class="shape" data-leaflet-id=${layer['id']}><h1>Current ID: ${layer['id']}</h1></div>`);
+      $("#shapes").append(jhtml);
+      $(`[data-leaflet-id=${layer['id']}]`).click(function(e) {
+        console.log(`This is rectangle ${layer['id']}`);
+        //layer['layer'].setStyle({color :'red'});
+        $(`[data-leaflet-id=${layer['id']}]`).remove();
+        map.removeLayer(layer['layer']);
+        delete layer;
+      });
+
+    });
 });
