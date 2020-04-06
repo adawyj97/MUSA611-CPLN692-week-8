@@ -110,7 +110,6 @@ map.on('draw:created', function (e) {
     var type = e.layerType; // The type of shape
     var layer = e.layer; // The Leaflet layer for the shape
     var id = L.stamp(layer); // The unique Leaflet ID for the layer
-    layer.on("click", function(e) {console.log(e.target._leaflet_id); });
     /*
     if (myRectangle != undefined) {
         map.removeLayer(myRectangle);
@@ -132,6 +131,11 @@ map.on('draw:created', function (e) {
         map.removeLayer(layer['layer']);
         delete layer;
       });
-
+      layer['layer'].on("mouseover", function(e) {
+        $(`[data-leaflet-id=${e.target._leaflet_id}]`).css("background-color", "yellow");
     });
+      layer['layer'].on("mouseout", function(e) {
+        $(`[data-leaflet-id=${e.target._leaflet_id}]`).css("background-color", "transparent");
+      });
+        });
 });
