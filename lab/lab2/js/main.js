@@ -115,7 +115,9 @@ Task 6 (stretch): Refocus the map to roughly the bounding box of your route
 
 
 ===================== */
-
+var myaccesstoken = 'pk.eyJ1Ijoic2FyYWh3eWo5NyIsImEiOiJjaXRqbDY4MGowODd2MnNudjZoYTRoYTdvIn0.IJkerWhlLG-vRoCpqtL8NA';
+var origin;
+var destination;
 var state = {
   position: {
     marker: null,
@@ -146,6 +148,7 @@ $(document).ready(function() {
   /* This 'if' check allows us to safely ask for the user's current position */
   if ("geolocation" in navigator) {
     navigator.geolocation.getCurrentPosition(function(position) {
+      origin = [position.coords.latitude, position.coords.longitude];
       updatePosition(position.coords.latitude, position.coords.longitude, position.timestamp);
     });
   } else {
@@ -167,8 +170,26 @@ $(document).ready(function() {
   // click handler for the "calculate" button (probably you want to do something with this)
   $("#calculate").click(function(e) {
     var dest = $('#dest').val();
-    console.log(dest);
+    var request = `https://api.mapbox.com/geocoding/v5/mapbox.places/${dest}.json?access_token=${myaccesstoken}`;
+    $.ajax({method: 'GET',
+    url: request}).done(function(data) {
+      destination = data;
+      var desCoor = destination.features[0].geometry.coordinates;
+      L.circleMarker([desCoor[1], desCoor[0]], {color: "green"}).addTo(map);
+      var dirRequest = `https://api.mapbox.com/directions/v5/mapbox/walking/${origin[1]},${origin[0]};${desCoor[0]},${desCoor[1]}.json?access_token=${myaccesstoken}`;
+      $.ajax(dirRequest).done(function(directions) {
+        var route = turf.lineString(polyline.decode(directions.routes[0].geometry));
+        var lines = polyline.decode(directions.routes[0].geometry);
+        lines = _.map(lines, function(coordinates){ return [coordinates[1], coordinates[0]]; });
+        var myStyle = {
+          "color": "#ff7800",
+          "weight": 5,
+          "opacity": 0.65
+        };
+        L.geoJSON(turf.lineString(lines), {
+          style: myStyle
+        }).addTo(map);
+      });
+    });
   });
-
 });
-
