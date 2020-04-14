@@ -90,7 +90,7 @@ var resetApplication = function() {
   _.each(state.markers, function(marker) { map.removeLayer(marker) })
   map.removeLayer(state.line);
 
-  state.markers = []
+  state.markers = [];
   state.line = undefined;
   $('#button-reset').hide();
 }
@@ -102,11 +102,40 @@ On draw
 
 Leaflet Draw runs every time a marker is added to the map. When this happens
 ---------------- */
+var latlong;
+var myaccesstoken = 'pk.eyJ1Ijoic2FyYWh3eWo5NyIsImEiOiJjaXRqbDY4MGowODd2MnNudjZoYTRoYTdvIn0.IJkerWhlLG-vRoCpqtL8NA';
 
 map.on('draw:created', function (e) {
   var type = e.layerType; // The type of shape
   var layer = e.layer; // The Leaflet layer for the shape
   var id = L.stamp(layer); // The unique Leaflet ID for the
-
-  console.log('Do something with the layer you just created:', layer, layer._latlng);
+  $('#button-reset').show();
+  state.markers.push(layer);
+  map.addLayer(layer);
+  var lat = layer._latlng.lat;
+  var long = layer._latlng.lng;
+  if (state.markers.length == 1) {
+    latlong = `${long},${lat}`;
+  } else {
+    latlong = latlong + `;${long},${lat}`;
+    var dirRequest = `https://api.mapbox.com/directions/v5/mapbox/walking/${latlong}.json?access_token=${myaccesstoken}`;
+    $.ajax(dirRequest).done(function(directions) {
+      var route = turf.lineString(polyline.decode(directions.routes[0].geometry));
+      var lines = polyline.decode(directions.routes[0].geometry);
+      lines = _.map(lines, function(coordinates){ return [coordinates[1], coordinates[0]]; });
+      var myStyle = {
+        "color": "#ff7800",
+        "weight": 5,
+        "opacity": 0.65
+      };
+      if (state.line != undefined) {
+        map.removeLayer(state.line);
+      }
+      var finalroute = L.geoJSON(turf.lineString(lines), {
+        style: myStyle
+      });
+      state.line = finalroute;
+      finalroute.addTo(map);
+    });
+  }
 });
