@@ -122,7 +122,8 @@ var state = {
   position: {
     marker: null,
     updated: null
-  }
+  },
+  line: null
 };
 
 /* We'll use underscore's `once` function to make sure this only happens
@@ -168,17 +169,27 @@ $(document).ready(function() {
   });
 
   // click handler for the "calculate" button (probably you want to do something with this)
+    var jhtml = $.parseHTML(`<h1 class="Distance"></h1><h1 class="Time"></h1>`);
+    $(".sidebar").append(jhtml);
   $("#calculate").click(function(e) {
+    if (state.line != null) {
+      map.removeLayer(state.line);
+    }
+    if (destination != undefined) {
+      map.removeLayer(destination);
+    }
     var dest = $('#dest').val();
     var request = `https://api.mapbox.com/geocoding/v5/mapbox.places/${dest}.json?access_token=${myaccesstoken}`;
     $.ajax({method: 'GET',
     url: request}).done(function(data) {
       destination = data;
       var desCoor = destination.features[0].geometry.coordinates;
-      L.circleMarker([desCoor[1], desCoor[0]], {color: "green"}).addTo(map);
+      destination = L.circleMarker([desCoor[1], desCoor[0]], {color: "green"});
+      destination.addTo(map);
       var dirRequest = `https://api.mapbox.com/directions/v5/mapbox/walking/${origin[1]},${origin[0]};${desCoor[0]},${desCoor[1]}.json?access_token=${myaccesstoken}`;
       $.ajax(dirRequest).done(function(directions) {
-        var route = turf.lineString(polyline.decode(directions.routes[0].geometry));
+        $(".Distance").text(`Distance: ${directions.routes[0].distance} meters`);
+        $(".Time").text(`Duration: ${directions.routes[0].duration} seconds`);
         var lines = polyline.decode(directions.routes[0].geometry);
         lines = _.map(lines, function(coordinates){ return [coordinates[1], coordinates[0]]; });
         var myStyle = {
@@ -186,9 +197,15 @@ $(document).ready(function() {
           "weight": 5,
           "opacity": 0.65
         };
-        L.geoJSON(turf.lineString(lines), {
+        state.line = L.geoJSON(turf.lineString(lines), {
           style: myStyle
-        }).addTo(map);
+        });
+        state.line.addTo(map);
+        var bbox = turf.bbox(turf.lineString(lines));
+        map.fitBounds([
+          [bbox[1], bbox[0]],
+          [bbox[3], bbox[2]]
+        ]);
       });
     });
   });
